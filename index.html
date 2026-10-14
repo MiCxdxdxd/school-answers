@@ -202,7 +202,8 @@
         });
 
         if (!response.ok) {
-          throw new Error("Сервер недоступен.");
+  throw new Error("Ошибка HTTP " + response.status);
+}
         }
 
         const result = await response.json();
