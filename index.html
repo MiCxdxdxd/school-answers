@@ -406,6 +406,9 @@
     let starsTimer = null;
     let localAnswers = [];
 
+    const storageKey =
+      "sentAnswers_" + window.location.href;
+
     function applyThemeColor(color) {
       document.documentElement.style.setProperty("--theme-color", color);
     }
@@ -529,7 +532,7 @@
       }
 
       localStorage.setItem(
-        "sentAnswers",
+        storageKey,
         JSON.stringify(localAnswers)
       );
 
@@ -539,7 +542,7 @@
 
     try {
       localAnswers = JSON.parse(
-        localStorage.getItem("sentAnswers") || "[]"
+        localStorage.getItem(storageKey) || "[]"
       );
 
       if (!Array.isArray(localAnswers)) {
