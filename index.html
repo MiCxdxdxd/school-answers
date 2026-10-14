@@ -204,7 +204,6 @@
         if (!response.ok) {
   throw new Error("Ошибка HTTP " + response.status);
 }
-        }
 
         const result = await response.json();
 
