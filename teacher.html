@@ -267,7 +267,7 @@
       loading = true;
       loginButton.disabled = true;
       refreshButton.disabled = true;
-      message.textContent = "Загружаем ответы…";
+      message.textContent = "Загружаем ответы — версия 2…";
 
       try {
        const response = await fetch(API_URL, {
@@ -301,7 +301,8 @@ if (!result.ok) {
           : "Ученики пока не отправили ответы.";
       } catch (error) {
         if (requestSession === sessionVersion) {
-          message.textContent = error.message;
+          message.textContent = error.stack || error.message;
+message.style.whiteSpace = "pre-wrap";
         }
       } finally {
         loading = false;
