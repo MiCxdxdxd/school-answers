@@ -19,7 +19,7 @@
     }
 
     .wrap {
-      max-width: 1100px;
+      max-width: 1400px;
       margin: auto;
     }
 
@@ -32,22 +32,43 @@
       line-height: 1.5;
     }
 
-    .login {
+    .login,
+    .toolbar,
+    .task-form {
       display: flex;
-      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .login {
       max-width: 500px;
-      margin: 24px 0;
     }
 
     input {
       min-width: 0;
-      flex: 1;
       padding: 12px;
       border: 1px solid #475569;
       border-radius: 10px;
       background: #1e293b;
       color: white;
       font: inherit;
+    }
+
+    .login input {
+      flex: 1;
+    }
+
+    .task-form input {
+      flex: 1 1 200px;
+    }
+
+    input:focus-visible,
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid #93c5fd;
+      outline-offset: 3px;
     }
 
     button {
@@ -66,21 +87,22 @@
       cursor: wait;
     }
 
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      margin: 20px 0;
-    }
-
     .secondary {
       background: #334155;
+    }
+
+    .green {
+      background: #15803d;
+    }
+
+    .danger {
+      background: #b91c1c;
     }
 
     .table-wrap {
       overflow-x: auto;
       border-radius: 12px;
+      margin-bottom: 20px;
     }
 
     table {
@@ -89,10 +111,12 @@
       background: #1e293b;
     }
 
-    th, td {
+    th,
+    td {
       padding: 14px;
       text-align: left;
       border-bottom: 1px solid #334155;
+      vertical-align: top;
       overflow-wrap: anywhere;
     }
 
@@ -101,25 +125,62 @@
       white-space: nowrap;
     }
 
+    #answersBody td {
+      min-width: 140px;
+    }
+
+    #answersBody td:first-child {
+      min-width: 200px;
+    }
+
+    #answersBody td:nth-child(2) {
+      min-width: 80px;
+    }
+
     .correct {
       color: #86efac;
       background: #14532d;
-      font-weight: 700;
     }
 
     .wrong {
       color: #fecaca;
       background: #7f1d1d;
+    }
+
+    .no-answer {
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .answer-value {
+      font-size: 17px;
       font-weight: 700;
+      white-space: pre-wrap;
+    }
+
+    .answer-result {
+      margin-top: 6px;
+      font-size: 13px;
+      white-space: nowrap;
     }
 
     #message {
       min-height: 24px;
       color: #fbbf24;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     #count {
       color: #94a3b8;
+    }
+
+    #tasksEditor {
+      margin: 24px 0;
+      padding: 20px;
+      border: 1px solid #475569;
+      border-radius: 14px;
+      background: #111c30;
     }
 
     a {
@@ -130,68 +191,26 @@
       display: none !important;
     }
 
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       body {
         padding: 16px;
       }
 
-      .login {
+      .login,
+      .task-form {
+        align-items: stretch;
         flex-direction: column;
       }
+
+      .task-form input {
+        flex: auto;
+        width: 100%;
+      }
+
+      #tasksEditor {
+        padding: 14px;
+      }
     }
-  .table-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 18px;
-  border-radius: 10px;
-  background: #15803d;
-  color: white;
-  font: inherit;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.table-button:hover {
-  background: #166534;
-}
-
-.table-button:focus-visible {
-  outline: 3px solid #86efac;
-  outline-offset: 3px;
-}
-    .answer-value {
-  font-size: 17px;
-  font-weight: 700;
-  white-space: pre-wrap;
-}
-
-.answer-result {
-  margin-top: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.no-answer {
-  color: #94a3b8;
-  background: #1e293b;
-  font-style: italic;
-}
-
-#answersBody td {
-  vertical-align: top;
-  min-width: 140px;
-}
-
-#answersBody td:first-child {
-  min-width: 200px;
-}
-
-#answersBody td:nth-child(2) {
-  min-width: 80px;
-}
   </style>
 </head>
 
@@ -200,8 +219,8 @@
     <h1>Панель учителя</h1>
 
     <p class="subtitle">
-      Правильные ответы отмечены зелёным,
-      неправильные — красным.
+      Каждый ученик отображается в одной строке.
+      Правильные ответы — зелёные, неправильные — красные.
     </p>
 
     <form id="loginForm" class="login">
@@ -223,358 +242,550 @@
 
     <section id="panel" hidden>
       <div class="toolbar">
-        <a
-  id="correctAnswersLink"
-  class="table-button"
-  target="_blank"
-  rel="noopener noreferrer"
->
-  Правильные ответы
-</a>
         <button id="refreshButton" type="button">
           Обновить ответы
+        </button>
+
+        <button id="correctAnswersButton" class="green" type="button">
+          Правильные ответы
+        </button>
+
+        <button id="deleteAllButton" class="danger" type="button">
+          Удалить все ответы
         </button>
 
         <button id="logoutButton" class="secondary" type="button">
           Выйти
         </button>
-        <button
-  id="deleteAllButton"
-  type="button"
-  style="background: #b91c1c;"
->
-  Удалить все ответы
-</button>
-
-        <span id="count"></span>
       </div>
 
+      <section id="tasksEditor" hidden>
+        <h2>Правильные ответы</h2>
+
+        <p class="subtitle">
+          Чтобы изменить ответ, укажите существующий номер задания.
+          Чтобы добавить задание — новый номер.
+        </p>
+
+        <form id="taskForm" class="task-form">
+          <input
+            id="taskNumberInput"
+            placeholder="Номер задания"
+            aria-label="Номер задания"
+            maxlength="40"
+            required
+          >
+
+          <input
+            id="taskAnswerInput"
+            placeholder="Правильный ответ"
+            aria-label="Правильный ответ"
+            maxlength="1000"
+            required
+          >
+
+          <button id="saveTaskButton" type="submit">
+            Сохранить
+          </button>
+
+          <button id="closeTasksButton" class="secondary" type="button">
+            Закрыть
+          </button>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Номер задания</th>
+                <th>Правильный ответ</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody id="tasksBody"></tbody>
+          </table>
+        </div>
+
+        <p id="tasksEmpty" hidden>Заданий пока нет.</p>
+      </section>
+
+      <p id="count"></p>
+
       <div class="table-wrap">
-  <table>
-    <thead id="answersHead"></thead>
-    <tbody id="answersBody"></tbody>
-  </table>
-</div>
+        <table>
+          <thead id="answersHead"></thead>
+          <tbody id="answersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <p>
       <a href="index.html">Вернуться на страницу ученика</a>
     </p>
   </main>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwKhlv5R_qVoBFco1LJiSMSeClpRvSvTBEgE_lBn0g5OFDJqY5T6U0guj7rOi4prYU/exec"
-    const TASKS_TABLE_URL = "https://docs.google.com/spreadsheets/d/1XjKPxJdVij3acNPLjxIG-Q1cR6X0T1vtfkz65XAvMso/edit?gid=0#gid=0";
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbwKhlv5R_qVoBFco1LJiSMSeClpRvSvTBEgE_lBn0g5OFDJqY5T6U0guj7rOi4prYU/exec";
 
-document.getElementById("correctAnswersLink").href = TASKS_TABLE_URL;
     const loginForm = document.getElementById("loginForm");
     const passwordInput = document.getElementById("password");
     const loginButton = document.getElementById("loginButton");
-    const refreshButton = document.getElementById("refreshButton");
-    const logoutButton = document.getElementById("logoutButton");
-    const message = document.getElementById("message");
     const panel = document.getElementById("panel");
+    const message = document.getElementById("message");
+
+    const refreshButton = document.getElementById("refreshButton");
+    const correctAnswersButton =
+      document.getElementById("correctAnswersButton");
+    const deleteAllButton = document.getElementById("deleteAllButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    const answersHead = document.getElementById("answersHead");
     const answersBody = document.getElementById("answersBody");
     const count = document.getElementById("count");
 
+    const tasksEditor = document.getElementById("tasksEditor");
+    const taskForm = document.getElementById("taskForm");
+    const taskNumberInput = document.getElementById("taskNumberInput");
+    const taskAnswerInput = document.getElementById("taskAnswerInput");
+    const saveTaskButton = document.getElementById("saveTaskButton");
+    const closeTasksButton = document.getElementById("closeTasksButton");
+    const tasksBody = document.getElementById("tasksBody");
+    const tasksEmpty = document.getElementById("tasksEmpty");
+
     let teacherPassword = "";
-    let loading = false;
-    let sessionVersion = 0;
+    let busy = false;
 
-    function addCell(row, value, className = "") {
-      const cell = document.createElement("td");
-      cell.textContent = String(value ?? "");
+    function setBusy(value) {
+      busy = value;
 
-      if (className) {
-        cell.className = className;
-      }
+      [
+        loginButton,
+        refreshButton,
+        correctAnswersButton,
+        deleteAllButton,
+        logoutButton,
+        saveTaskButton,
+        closeTasksButton,
+        passwordInput,
+        taskNumberInput,
+        taskAnswerInput
+      ].forEach(element => {
+        element.disabled = value;
+      });
 
-      row.appendChild(cell);
-    }
-    function showAnswers(answers) {
-  const head = document.getElementById("answersHead");
-
-  head.replaceChildren();
-  answersBody.replaceChildren();
-
-  const clean = value => String(value ?? "").trim();
-
-  // Столбцы создаются для заданий, по которым уже есть ответы.
-  const taskNumbers = [...new Set(
-    answers
-      .map(answer => clean(answer.taskNumber))
-      .filter(Boolean)
-  )].sort((a, b) =>
-    a.localeCompare(b, "ru", {
-      numeric: true,
-      sensitivity: "base"
-    })
-  );
-
-  // Объединяем записи одного ученика в одну строку.
-  const students = new Map();
-
-  for (const answer of answers) {
-    const firstName = clean(answer.firstName);
-    const lastName = clean(answer.lastName);
-    const className = clean(answer.className);
-    const taskNumber = clean(answer.taskNumber);
-
-    const normalizeName = value =>
-  String(value ?? "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase()
-    .replace(/ё/g, "е");
-
-const normalizeClass = value =>
-  String(value ?? "")
-    .trim()
-    .replace(/\s+/g, "")
-    .toLowerCase();
-
-const studentKey = JSON.stringify([
-  normalizeName(firstName),
-  normalizeName(lastName),
-  normalizeClass(className)
-]);
-
-    if (!students.has(studentKey)) {
-      students.set(studentKey, {
-        firstName,
-        lastName,
-        className,
-        tasks: new Map()
+      tasksBody.querySelectorAll("button").forEach(button => {
+        button.disabled = value;
       });
     }
 
-    // Если ответ отправлен несколько раз, показываем последний.
-    students.get(studentKey).tasks.set(taskNumber, answer);
-  }
+    async function apiRequest(action, extra = {}) {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          ...extra,
+          action,
+          password: teacherPassword
+        })
+      });
 
-  const headerRow = document.createElement("tr");
-
-  function addHeader(text) {
-    const th = document.createElement("th");
-    th.scope = "col";
-    th.textContent = text;
-    headerRow.appendChild(th);
-  }
-
-  addHeader("Имя и фамилия");
-  addHeader("Класс");
-
-  for (const number of taskNumbers) {
-    addHeader(`Задание № ${number}`);
-  }
-
-  head.appendChild(headerRow);
-
-  const sortedStudents = [...students.values()].sort((a, b) =>
-    a.className.localeCompare(b.className, "ru", {
-      numeric: true
-    }) ||
-    a.lastName.localeCompare(b.lastName, "ru") ||
-    a.firstName.localeCompare(b.firstName, "ru")
-  );
-
-  for (const student of sortedStudents) {
-    const row = document.createElement("tr");
-
-    addCell(
-      row,
-      `${student.firstName} ${student.lastName}`.trim()
-    );
-
-    addCell(row, student.className);
-
-    for (const number of taskNumbers) {
-      const cell = document.createElement("td");
-      const answer = student.tasks.get(number);
-
-      if (!answer) {
-        cell.className = "no-answer";
-        cell.textContent = "Нет ответа";
-      } else {
-        cell.className = answer.correct ? "correct" : "wrong";
-
-        const answerText = document.createElement("div");
-        answerText.className = "answer-value";
-        answerText.textContent = String(answer.answer ?? "");
-
-        const resultText = document.createElement("div");
-        resultText.className = "answer-result";
-        resultText.textContent = answer.correct
-          ? "✓ Правильно"
-          : "✗ Неправильно";
-
-        cell.appendChild(answerText);
-        cell.appendChild(resultText);
+      if (!response.ok) {
+        throw new Error("Ошибка HTTP " + response.status);
       }
 
-      row.appendChild(cell);
+      const result = await response.json();
+
+      if (!result.ok) {
+        throw new Error(result.error || "Не удалось обработать запрос.");
+      }
+
+      return result;
     }
 
-    answersBody.appendChild(row);
-  }
+    function addCell(row, value) {
+      const cell = document.createElement("td");
+      cell.textContent = String(value ?? "");
+      row.appendChild(cell);
+      return cell;
+    }
 
-  count.textContent =
-    `Учеников: ${students.size} · ` +
-    `Заданий с ответами: ${taskNumbers.length} · ` +
-    `Всего отправок: ${answers.length}`;
-}
+    function clean(value) {
+      return String(value ?? "").trim();
+    }
 
-    async function loadAnswers(password) {
-      if (loading) {
+    function normalizeName(value) {
+      return clean(value)
+        .replace(/\s+/g, " ")
+        .toLowerCase()
+        .replace(/ё/g, "е");
+    }
+
+    function normalizeClass(value) {
+      return clean(value)
+        .replace(/\s+/g, "")
+        .toLowerCase();
+    }
+
+    function showAnswers(answers) {
+      answersHead.replaceChildren();
+      answersBody.replaceChildren();
+
+      const taskNumbers = [...new Set(
+        answers
+          .map(answer => clean(answer.taskNumber))
+          .filter(Boolean)
+      )].sort((a, b) =>
+        a.localeCompare(b, "ru", {
+          numeric: true,
+          sensitivity: "base"
+        })
+      );
+
+      const students = new Map();
+
+      for (const answer of answers) {
+        const firstName = clean(answer.firstName);
+        const lastName = clean(answer.lastName);
+        const className = clean(answer.className);
+        const taskNumber = clean(answer.taskNumber);
+
+        const studentKey = JSON.stringify([
+          normalizeName(firstName),
+          normalizeName(lastName),
+          normalizeClass(className)
+        ]);
+
+        if (!students.has(studentKey)) {
+          students.set(studentKey, {
+            firstName,
+            lastName,
+            className,
+            tasks: new Map()
+          });
+        }
+
+        students.get(studentKey).tasks.set(taskNumber, answer);
+      }
+
+      const headerRow = document.createElement("tr");
+
+      for (const title of [
+        "Имя и фамилия",
+        "Класс",
+        ...taskNumbers.map(number => `Задание № ${number}`)
+      ]) {
+        const th = document.createElement("th");
+        th.scope = "col";
+        th.textContent = title;
+        headerRow.appendChild(th);
+      }
+
+      answersHead.appendChild(headerRow);
+
+      const sortedStudents = [...students.values()].sort((a, b) =>
+        a.lastName.localeCompare(b.lastName, "ru", {
+          sensitivity: "base"
+        }) ||
+        a.firstName.localeCompare(b.firstName, "ru", {
+          sensitivity: "base"
+        }) ||
+        a.className.localeCompare(b.className, "ru", {
+          numeric: true,
+          sensitivity: "base"
+        })
+      );
+
+      for (const student of sortedStudents) {
+        const row = document.createElement("tr");
+
+        addCell(
+          row,
+          `${student.firstName} ${student.lastName}`.trim()
+        );
+
+        addCell(row, student.className);
+
+        for (const number of taskNumbers) {
+          const cell = document.createElement("td");
+          const answer = student.tasks.get(number);
+
+          if (!answer) {
+            cell.className = "no-answer";
+            cell.textContent = "Нет ответа";
+          } else {
+            cell.className = answer.correct ? "correct" : "wrong";
+
+            const answerText = document.createElement("div");
+            answerText.className = "answer-value";
+            answerText.textContent = String(answer.answer ?? "");
+
+            const resultText = document.createElement("div");
+            resultText.className = "answer-result";
+            resultText.textContent = answer.correct
+              ? "✓ Правильно"
+              : "✗ Неправильно";
+
+            cell.append(answerText, resultText);
+          }
+
+          row.appendChild(cell);
+        }
+
+        answersBody.appendChild(row);
+      }
+
+      count.textContent =
+        `Учеников: ${students.size} · ` +
+        `Заданий с ответами: ${taskNumbers.length} · ` +
+        `Всего отправок: ${answers.length}`;
+    }
+
+    function renderTasks(tasks) {
+      tasksBody.replaceChildren();
+      tasksEmpty.hidden = tasks.length > 0;
+
+      const sorted = tasks.slice().sort((a, b) =>
+        String(a.taskNumber).localeCompare(
+          String(b.taskNumber),
+          "ru",
+          { numeric: true, sensitivity: "base" }
+        )
+      );
+
+      for (const task of sorted) {
+        const row = document.createElement("tr");
+
+        addCell(row, task.taskNumber);
+        addCell(row, task.answer);
+
+        const actionCell = document.createElement("td");
+        const editButton = document.createElement("button");
+
+        editButton.type = "button";
+        editButton.className = "secondary";
+        editButton.textContent = "Изменить";
+        editButton.disabled = busy;
+
+        editButton.addEventListener("click", () => {
+          taskNumberInput.value = task.taskNumber;
+          taskAnswerInput.value = task.answer;
+          taskAnswerInput.focus();
+          taskForm.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+          });
+        });
+
+        actionCell.appendChild(editButton);
+        row.appendChild(actionCell);
+        tasksBody.appendChild(row);
+      }
+    }
+
+    async function refreshAnswers() {
+      const result = await apiRequest("teacher");
+      const answers = result.answers || [];
+
+      showAnswers(answers);
+      return answers;
+    }
+
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      if (busy) {
         return;
       }
 
-      const requestSession = sessionVersion;
-
-      loading = true;
-      loginButton.disabled = true;
-      refreshButton.disabled = true;
-      message.textContent = "Загружаем ответы — версия 2…";
+      teacherPassword = passwordInput.value;
+      setBusy(true);
+      message.textContent = "Загружаем ответы…";
 
       try {
-       const response = await fetch(API_URL, {
-  method: "POST",
-  body: JSON.stringify({
-    action: "teacher",
-    password: password
-  })
-});
+        const answers = await refreshAnswers();
 
-if (!response.ok) {
-  throw new Error("Ошибка HTTP " + response.status);
-}
-
-const result = await response.json();
-
-if (!result.ok) {
-  throw new Error(result.error || "Не удалось загрузить ответы.");
-}
-
-        teacherPassword = password;
         passwordInput.value = "";
-
         loginForm.hidden = true;
         panel.hidden = false;
 
-        showAnswers(result.answers || []);
-
-        message.textContent = result.answers.length
+        message.textContent = answers.length
           ? ""
           : "Ученики пока не отправили ответы.";
       } catch (error) {
-        if (requestSession === sessionVersion) {
-          message.textContent = error.stack || error.message;
-message.style.whiteSpace = "pre-wrap";
-        }
+        teacherPassword = "";
+        message.textContent = error.message;
       } finally {
-        loading = false;
-        loginButton.disabled = false;
-        refreshButton.disabled = false;
+        setBusy(false);
       }
-    }
-
-    loginForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      loadAnswers(passwordInput.value);
     });
 
-    refreshButton.addEventListener("click", () => {
-      if (teacherPassword) {
-        loadAnswers(teacherPassword);
+    refreshButton.addEventListener("click", async () => {
+      if (busy || !teacherPassword) {
+        return;
+      }
+
+      setBusy(true);
+      message.textContent = "Обновляем ответы…";
+
+      try {
+        const answers = await refreshAnswers();
+
+        message.textContent = answers.length
+          ? "Ответы обновлены."
+          : "Ученики пока не отправили ответы.";
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    correctAnswersButton.addEventListener("click", async () => {
+      if (busy || !teacherPassword) {
+        return;
+      }
+
+      setBusy(true);
+      message.textContent = "Загружаем правильные ответы…";
+
+      try {
+        const result = await apiRequest("getTasks");
+
+        renderTasks(result.tasks || []);
+        tasksEditor.hidden = false;
+        message.textContent = "";
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    taskForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      if (busy || !teacherPassword) {
+        return;
+      }
+
+      const taskNumber = taskNumberInput.value.trim();
+      const answer = taskAnswerInput.value.trim();
+
+      if (!taskNumber || !answer) {
+        message.textContent =
+          "Введите номер задания и правильный ответ.";
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Сохранить правильный ответ для задания № ${taskNumber}?\n\n` +
+        "Если задание уже существует, его ответ будет заменён."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setBusy(true);
+      message.textContent = "Сохраняем правильный ответ…";
+      let saved = false;
+
+      try {
+        const result = await apiRequest("saveTask", {
+          taskNumber,
+          answer
+        });
+
+        saved = true;
+        renderTasks(result.tasks || []);
+        taskForm.reset();
+
+        await refreshAnswers();
+
+        message.textContent =
+          "Правильный ответ сохранён. Результаты обновлены.";
+      } catch (error) {
+        message.textContent = saved
+          ? "Правильный ответ сохранён, но результаты не обновились. " +
+            "Нажмите «Обновить ответы». " + error.message
+          : error.message +
+            " Если связь прервалась, заново откройте список " +
+            "правильных ответов перед повторным сохранением.";
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    closeTasksButton.addEventListener("click", () => {
+      tasksEditor.hidden = true;
+    });
+
+    deleteAllButton.addEventListener("click", async () => {
+      if (busy || !teacherPassword) {
+        return;
+      }
+
+      const confirmation = window.prompt(
+        "Будут удалены ВСЕ ответы учеников из таблицы «Ответы».\n" +
+        "Задания и заголовки останутся.\n\n" +
+        "Для подтверждения введите слово УДАЛИТЬ:"
+      );
+
+      if (confirmation !== "УДАЛИТЬ") {
+        return;
+      }
+
+      setBusy(true);
+      message.textContent = "Удаляем ответы…";
+      let deleted = false;
+
+      try {
+        await apiRequest("deleteAll", {
+          confirmation: "DELETE_ALL_ANSWERS"
+        });
+
+        deleted = true;
+        showAnswers([]);
+
+        const answers = await refreshAnswers();
+
+        message.textContent = answers.length
+          ? "Очистка выполнена. В таблице уже появились новые ответы."
+          : "Все ответы удалены. Заголовки сохранены.";
+      } catch (error) {
+        message.textContent = deleted
+          ? "Удаление выполнено, но список не обновился. " +
+            "Нажмите «Обновить ответы». " + error.message
+          : error.message +
+            " Перед повторным удалением обновите список: " +
+            "запрос мог выполниться, даже если ответ не получен.";
+      } finally {
+        setBusy(false);
       }
     });
 
     logoutButton.addEventListener("click", () => {
-      sessionVersion++;
+      if (busy) {
+        return;
+      }
+
       teacherPassword = "";
       passwordInput.value = "";
+
+      answersHead.replaceChildren();
       answersBody.replaceChildren();
+      tasksBody.replaceChildren();
+
+      taskForm.reset();
       count.textContent = "";
       message.textContent = "";
+
+      tasksEditor.hidden = true;
       panel.hidden = true;
       loginForm.hidden = false;
+
       passwordInput.focus();
     });
-    const deleteAllButton = document.getElementById("deleteAllButton");
-
-deleteAllButton.addEventListener("click", async () => {
-  if (loading || !teacherPassword) {
-    return;
-  }
-
-  const confirmation = window.prompt(
-    "Будут удалены ВСЕ ответы учеников из таблицы «Ответы».\n" +
-    "Задания и заголовки останутся.\n\n" +
-    "Для подтверждения введите слово УДАЛИТЬ:"
-  );
-
-  if (confirmation !== "УДАЛИТЬ") {
-    return;
-  }
-
-  const requestSession = sessionVersion;
-  const password = teacherPassword;
-  let deleted = false;
-
-  loading = true;
-  deleteAllButton.disabled = true;
-  refreshButton.disabled = true;
-  logoutButton.disabled = true;
-  message.textContent = "Удаляем ответы…";
-
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "deleteAll",
-        password: password,
-        confirmation: "DELETE_ALL_ANSWERS"
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("Ошибка HTTP " + response.status);
-    }
-
-    const result = await response.json();
-
-    if (!result.ok) {
-      throw new Error(result.error || "Не удалось удалить ответы.");
-    }
-
-    if (requestSession !== sessionVersion) {
-      return;
-    }
-
-    answersBody.replaceChildren();
-    count.textContent = "Всего ответов: 0";
-    message.textContent = result.message;
-    deleted = true;
-  } catch (error) {
-    if (requestSession === sessionVersion) {
-      message.textContent =
-        error.message +
-        " Перед повторной попыткой обновите список: " +
-        "удаление могло выполниться, даже если ответ сервера не получен.";
-    }
-  } finally {
-    loading = false;
-    deleteAllButton.disabled = false;
-    refreshButton.disabled = false;
-    logoutButton.disabled = false;
-  }
-
-  if (deleted && requestSession === sessionVersion) {
-    await loadAnswers(teacherPassword);
-
-    if (count.textContent === "Всего ответов: 0") {
-      message.textContent = "Все ответы удалены. Заголовки сохранены.";
-    }
-  }
-});
   </script>
 </body>
 </html>
