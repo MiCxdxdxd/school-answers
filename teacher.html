@@ -270,28 +270,23 @@
       message.textContent = "Загружаем ответы…";
 
       try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "teacher",
-            password: password
-          })
-        });
+       const response = await fetch(API_URL, {
+  method: "POST",
+  body: JSON.stringify({
+    action: "teacher",
+    password: password
+  })
+});
 
-        if (!response.ok) {
-  throw new Error(
-    "Ошибка HTTP " + response.status +
-    ". Проверьте ссылку и доступ к Apps Script."
-  );
+if (!response.ok) {
+  throw new Error("Ошибка HTTP " + response.status);
 }
 
-        if (requestSession !== sessionVersion) {
-          return;
-        }
+const result = await response.json();
 
-        if (!result.ok) {
-          throw new Error(result.error || "Не удалось загрузить ответы.");
-        }
+if (!result.ok) {
+  throw new Error(result.error || "Не удалось загрузить ответы.");
+}
 
         teacherPassword = password;
         passwordInput.value = "";
