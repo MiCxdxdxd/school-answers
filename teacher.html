@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Панель учителя</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .login {
+      display: flex;
+      gap: 10px;
+      max-width: 500px;
+      margin: 24px 0;
+    }
+
+    input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      background: #1e293b;
+      color: white;
+      font: inherit;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .secondary {
+      background: #334155;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e293b;
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      background: #273449;
+      white-space: nowrap;
+    }
+
+    .correct {
+      color: #86efac;
+      background: #14532d;
+      font-weight: 700;
+    }
+
+    .wrong {
+      color: #fecaca;
+      background: #7f1d1d;
+      font-weight: 700;
+    }
+
+    #message {
+      min-height: 24px;
+      color: #fbbf24;
+    }
+
+    #count {
+      color: #94a3b8;
+    }
+
+    a {
+      color: #93c5fd;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 16px;
+      }
+
+      .login {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <h1>Панель учителя</h1>
+
+    <p class="subtitle">
+      Правильные ответы отмечены зелёным,
+      неправильные — красным.
+    </p>
+
+    <form id="loginForm" class="login">
+      <input
+        id="password"
+        type="password"
+        placeholder="Пароль учителя"
+        aria-label="Пароль учителя"
+        autocomplete="current-password"
+        required
+      >
+
+      <button id="loginButton" type="submit">
+        Войти
+      </button>
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <section id="panel" hidden>
+      <div class="toolbar">
+        <button id="refreshButton" type="button">
+          Обновить ответы
+        </button>
+
+        <button id="logoutButton" class="secondary" type="button">
+          Выйти
+        </button>
+
+        <span id="count"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ученик</th>
+              <th>Класс</th>
+              <th>Задание</th>
+              <th>Ответ</th>
+              <th>Результат</th>
+            </tr>
+          </thead>
+          <tbody id="answersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p>
+      <a href="index.html">Вернуться на страницу ученика</a>
+    </p>
+  </main>
+
+  <script>
+    const API_URL = "1yq4GFAhD6zxae9JwvwIFGUB19j1rMDPC8lwbHU0WSXwBEC4OHc-oLDXE";
+
+    const loginForm = document.getElementById("loginForm");
+    const passwordInput = document.getElementById("password");
+    const loginButton = document.getElementById("loginButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const logoutButton = document.getElementById("logoutButton");
+    const message = document.getElementById("message");
+    const panel = document.getElementById("panel");
+    const answersBody = document.getElementById("answersBody");
+    const count = document.getElementById("count");
+
+    let teacherPassword = "";
+    let loading = false;
+    let sessionVersion = 0;
+
+    function addCell(row, value, className = "") {
+      const cell = document.createElement("td");
+      cell.textContent = String(value ?? "");
+
+      if (className) {
+        cell.className = className;
+      }
+
+      row.appendChild(cell);
+    }
+
+    function showAnswers(answers) {
+      answersBody.replaceChildren();
+
+      for (const answer of answers.slice().reverse()) {
+        const row = document.createElement("tr");
+
+        addCell(row, `${answer.lastName} ${answer.firstName}`);
+        addCell(row, answer.className);
+        addCell(row, `№ ${answer.taskNumber}`);
+
+        addCell(
+          row,
+          answer.answer,
+          answer.correct ? "correct" : "wrong"
+        );
+
+        addCell(
+          row,
+          answer.correct ? "Правильно" : "Неправильно",
+          answer.correct ? "correct" : "wrong"
+        );
+
+        answersBody.appendChild(row);
+      }
+
+      count.textContent = `Всего ответов: ${answers.length}`;
+    }
+
+    async function loadAnswers(password) {
+      if (loading) {
+        return;
+      }
+
+      const requestSession = sessionVersion;
+
+      loading = true;
+      loginButton.disabled = true;
+      refreshButton.disabled = true;
+      message.textContent = "Загружаем ответы…";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "teacher",
+            password: password
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("Сервер недоступен.");
+        }
+
+        const result = await response.json();
+
+        if (requestSession !== sessionVersion) {
+          return;
+        }
+
+        if (!result.ok) {
+          throw new Error(result.error || "Не удалось загрузить ответы.");
+        }
+
+        teacherPassword = password;
+        passwordInput.value = "";
+
+        loginForm.hidden = true;
+        panel.hidden = false;
+
+        showAnswers(result.answers || []);
+
+        message.textContent = result.answers.length
+          ? ""
+          : "Ученики пока не отправили ответы.";
+      } catch (error) {
+        if (requestSession === sessionVersion) {
+          message.textContent = error.message;
+        }
+      } finally {
+        loading = false;
+        loginButton.disabled = false;
+        refreshButton.disabled = false;
+      }
+    }
+
+    loginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      loadAnswers(passwordInput.value);
+    });
+
+    refreshButton.addEventListener("click", () => {
+      if (teacherPassword) {
+        loadAnswers(teacherPassword);
+      }
+    });
+
+    logoutButton.addEventListener("click", () => {
+      sessionVersion++;
+      teacherPassword = "";
+      passwordInput.value = "";
+      answersBody.replaceChildren();
+      count.textContent = "";
+      message.textContent = "";
+      panel.hidden = true;
+      loginForm.hidden = false;
+      passwordInput.focus();
+    });
+  </script>
+</body>
+</html>
