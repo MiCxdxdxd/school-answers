@@ -541,46 +541,65 @@
     }
 
     function renderTasks(tasks) {
-      tasksBody.replaceChildren();
-      tasksEmpty.hidden = tasks.length > 0;
+  tasksBody.replaceChildren();
+  tasksEmpty.hidden = tasks.length > 0;
 
-      const sorted = tasks.slice().sort((a, b) =>
-        String(a.taskNumber).localeCompare(
-          String(b.taskNumber),
-          "ru",
-          { numeric: true, sensitivity: "base" }
-        )
-      );
+  const sorted = tasks.slice().sort((a, b) =>
+    String(a.taskNumber).localeCompare(
+      String(b.taskNumber),
+      "ru",
+      { numeric: true, sensitivity: "base" }
+    )
+  );
 
-      for (const task of sorted) {
-        const row = document.createElement("tr");
+  for (const task of sorted) {
+    const row = document.createElement("tr");
 
-        addCell(row, task.taskNumber);
-        addCell(row, task.answer);
+    addCell(row, task.taskNumber);
+    addCell(row, task.answer);
 
-        const actionCell = document.createElement("td");
-        const editButton = document.createElement("button");
+    const actionCell = document.createElement("td");
+    const actions = document.createElement("div");
 
-        editButton.type = "button";
-        editButton.className = "secondary";
-        editButton.textContent = "Изменить";
-        editButton.disabled = busy;
+    actions.style.display = "flex";
+    actions.style.flexWrap = "wrap";
+    actions.style.gap = "8px";
 
-        editButton.addEventListener("click", () => {
-          taskNumberInput.value = task.taskNumber;
-          taskAnswerInput.value = task.answer;
-          taskAnswerInput.focus();
-          taskForm.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-          });
-        });
+    const editButton = document.createElement("button");
 
-        actionCell.appendChild(editButton);
-        row.appendChild(actionCell);
-        tasksBody.appendChild(row);
-      }
-    }
+    editButton.type = "button";
+    editButton.className = "secondary";
+    editButton.textContent = "Изменить";
+    editButton.disabled = busy;
+
+    editButton.addEventListener("click", () => {
+      taskNumberInput.value = task.taskNumber;
+      taskAnswerInput.value = task.answer;
+      taskAnswerInput.focus();
+
+      taskForm.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    });
+
+    const deleteButton = document.createElement("button");
+
+    deleteButton.type = "button";
+    deleteButton.className = "danger";
+    deleteButton.textContent = "Удалить";
+    deleteButton.disabled = busy;
+
+    deleteButton.addEventListener("click", () => {
+      removeTask(task.taskNumber);
+    });
+
+    actions.append(editButton, deleteButton);
+    actionCell.appendChild(actions);
+    row.appendChild(actionCell);
+    tasksBody.appendChild(row);
+  }
+}
 
     async function refreshAnswers() {
       const result = await apiRequest("teacher");
@@ -786,6 +805,62 @@
 
       passwordInput.focus();
     });
+    async function removeTask(taskNumber) {
+  if (busy || !teacherPassword) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Удалить задание № ${taskNumber} и его правильный ответ?\n\n` +
+    "Ответы учеников останутся, но будут отмечаться как неправильные, " +
+    "пока вы снова не добавите правильный ответ для этого задания."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setBusy(true);
+  message.textContent = "Удаляем задание…";
+
+  let deleted = false;
+  let deletionMessage = "";
+
+  try {
+    const result = await apiRequest("deleteTask", {
+      taskNumber: String(taskNumber),
+      confirmation: "DELETE_TASK"
+    });
+
+    deleted = true;
+    deletionMessage = result.message || "Задание удалено.";
+
+    renderTasks(result.tasks || []);
+
+    if (
+      taskNumberInput.value.trim() === String(taskNumber).trim()
+    ) {
+      taskForm.reset();
+    }
+
+    await refreshAnswers();
+
+    message.textContent =
+      deletionMessage + " Результаты учеников обновлены.";
+
+  } catch (error) {
+    message.textContent = deleted
+      ? deletionMessage +
+        " Но результаты не обновились. Нажмите «Обновить ответы». " +
+        error.message
+      : error.message +
+        " Перед повторной попыткой заново откройте " +
+        "«Правильные ответы», чтобы проверить список.";
+
+  } finally {
+    setBusy(false);
+  }
+}
   </script>
 </body>
 </html>
