@@ -284,6 +284,14 @@
       white-space: pre-wrap;
     }
 
+    .previous-answer {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #fbbf24;
+      white-space: pre-wrap;
+    }
+
     .answer-result {
       margin-top: 6px;
       font-size: 13px;
@@ -722,7 +730,19 @@
           });
         }
 
-        students.get(studentKey).tasks.set(taskNumber, answer);
+        const student = students.get(studentKey);
+        const existing = student.tasks.get(taskNumber);
+
+        if (existing) {
+          existing.previousAnswer = existing.answer;
+          existing.answer = answer.answer;
+          existing.correct = answer.correct;
+        } else {
+          student.tasks.set(taskNumber, {
+            ...answer,
+            previousAnswer: ""
+          });
+        }
       }
 
       const headerRow = document.createElement("tr");
@@ -776,6 +796,16 @@
             const answerText = document.createElement("div");
             answerText.className = "answer-value";
             answerText.textContent = String(answer.answer ?? "");
+
+            if (answer.previousAnswer) {
+              const previousText = document.createElement("div");
+              previousText.className = "previous-answer";
+              previousText.textContent =
+                "Предыдущий ответ: " +
+                String(answer.previousAnswer);
+
+              answerText.appendChild(previousText);
+            }
 
             const resultText = document.createElement("div");
             resultText.className = "answer-result";
