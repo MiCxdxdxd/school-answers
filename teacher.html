@@ -285,13 +285,20 @@
           >
 
           <button id="saveTaskButton" type="submit">
-            Сохранить
-          </button>
+  Сохранить
+</button>
 
-          <button id="closeTasksButton" class="secondary" type="button">
-            Закрыть
-          </button>
-        </form>
+<button
+  id="deleteAllTasksButton"
+  class="danger"
+  type="button"
+>
+  Удалить все задания
+</button>
+
+<button id="closeTasksButton" class="secondary" type="button">
+  Закрыть
+</button>
 
         <div class="table-wrap">
           <table>
@@ -350,6 +357,7 @@
     const taskAnswerInput = document.getElementById("taskAnswerInput");
     const saveTaskButton = document.getElementById("saveTaskButton");
     const closeTasksButton = document.getElementById("closeTasksButton");
+    const deleteAllTasksButton = document.getElementById("deleteAllTasksButton");
     const tasksBody = document.getElementById("tasksBody");
     const tasksEmpty = document.getElementById("tasksEmpty");
 
@@ -366,6 +374,7 @@
         deleteAllButton,
         logoutButton,
         saveTaskButton,
+        deleteAllTasksButton,
         closeTasksButton,
         passwordInput,
         taskNumberInput,
@@ -734,7 +743,49 @@
         setBusy(false);
       }
     });
+deleteAllTasksButton.addEventListener("click", async () => {
+  if (busy || !teacherPassword) {
+    return;
+  }
 
+  const confirmed = window.confirm(
+    "Удалить ВСЕ задания и правильные ответы?\n\n" +
+    "Ответы учеников останутся в таблице, " +
+    "но без заданий они не будут проверяться."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setBusy(true);
+  message.textContent = "Удаляем все задания…";
+  let deleted = false;
+
+  try {
+    const result = await apiRequest("deleteAllTasks", {
+      confirmation: "DELETE_ALL_TASKS"
+    });
+
+    deleted = true;
+    renderTasks(result.tasks || []);
+    taskForm.reset();
+
+    await refreshAnswers();
+
+    message.textContent =
+      result.message || "Все задания удалены.";
+  } catch (error) {
+    message.textContent = deleted
+      ? "Удаление выполнено, но список не обновился. " +
+        "Заново откройте «Правильные ответы». " + error.message
+      : error.message +
+        " Перед повторной попыткой заново откройте " +
+        "«Правильные ответы».";
+  } finally {
+    setBusy(false);
+  }
+});
     closeTasksButton.addEventListener("click", () => {
       tasksEditor.hidden = true;
     });
