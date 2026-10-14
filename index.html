@@ -256,6 +256,13 @@
       overflow-wrap: anywhere;
     }
 
+    .edited-label {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #b45309;
+    }
+
     .sent-empty {
       color: var(--muted-color);
       font-size: 14px;
@@ -495,12 +502,31 @@
         answer.textContent = item.answer;
 
         block.append(title, answer);
+
+        if (item.edited) {
+          const edited = document.createElement("div");
+          edited.className = "edited-label";
+          edited.textContent = "Изменено";
+          block.appendChild(edited);
+        }
+
         sentList.appendChild(block);
       }
     }
 
     function saveLocalAnswer(item) {
-      localAnswers.push(item);
+      const existingIndex = localAnswers.findIndex(
+        saved => saved.taskNumber === item.taskNumber
+      );
+
+      if (existingIndex !== -1) {
+        localAnswers[existingIndex] = {
+          ...item,
+          edited: true
+        };
+      } else {
+        localAnswers.push(item);
+      }
 
       localStorage.setItem(
         "sentAnswers",
