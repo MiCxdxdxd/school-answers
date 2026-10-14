@@ -280,10 +280,11 @@
         });
 
         if (!response.ok) {
-          throw new Error("Сервер недоступен.");
-        }
-
-        const result = await response.json();
+  throw new Error(
+    "Ошибка HTTP " + response.status +
+    ". Проверьте ссылку и доступ к Apps Script."
+  );
+}
 
         if (requestSession !== sessionVersion) {
           return;
