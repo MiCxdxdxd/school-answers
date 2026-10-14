@@ -177,6 +177,13 @@
         <button id="logoutButton" class="secondary" type="button">
           Выйти
         </button>
+        <button
+  id="deleteAllButton"
+  type="button"
+  style="background: #b91c1c;"
+>
+  Удалить все ответы
+</button>
 
         <span id="count"></span>
       </div>
@@ -333,6 +340,83 @@ message.style.whiteSpace = "pre-wrap";
       loginForm.hidden = false;
       passwordInput.focus();
     });
+    const deleteAllButton = document.getElementById("deleteAllButton");
+
+deleteAllButton.addEventListener("click", async () => {
+  if (loading || !teacherPassword) {
+    return;
+  }
+
+  const confirmation = window.prompt(
+    "Будут удалены ВСЕ ответы учеников из таблицы «Ответы».\n" +
+    "Задания и заголовки останутся.\n\n" +
+    "Для подтверждения введите слово УДАЛИТЬ:"
+  );
+
+  if (confirmation !== "УДАЛИТЬ") {
+    return;
+  }
+
+  const requestSession = sessionVersion;
+  const password = teacherPassword;
+  let deleted = false;
+
+  loading = true;
+  deleteAllButton.disabled = true;
+  refreshButton.disabled = true;
+  logoutButton.disabled = true;
+  message.textContent = "Удаляем ответы…";
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "deleteAll",
+        password: password,
+        confirmation: "DELETE_ALL_ANSWERS"
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Ошибка HTTP " + response.status);
+    }
+
+    const result = await response.json();
+
+    if (!result.ok) {
+      throw new Error(result.error || "Не удалось удалить ответы.");
+    }
+
+    if (requestSession !== sessionVersion) {
+      return;
+    }
+
+    answersBody.replaceChildren();
+    count.textContent = "Всего ответов: 0";
+    message.textContent = result.message;
+    deleted = true;
+  } catch (error) {
+    if (requestSession === sessionVersion) {
+      message.textContent =
+        error.message +
+        " Перед повторной попыткой обновите список: " +
+        "удаление могло выполниться, даже если ответ сервера не получен.";
+    }
+  } finally {
+    loading = false;
+    deleteAllButton.disabled = false;
+    refreshButton.disabled = false;
+    logoutButton.disabled = false;
+  }
+
+  if (deleted && requestSession === sessionVersion) {
+    await loadAnswers(teacherPassword);
+
+    if (count.textContent === "Всего ответов: 0") {
+      message.textContent = "Все ответы удалены. Заголовки сохранены.";
+    }
+  }
+});
   </script>
 </body>
 </html>
