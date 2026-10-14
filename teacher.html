@@ -49,8 +49,6 @@
     .wrap {
       max-width: 1400px;
       margin: auto;
-      position: relative;
-      z-index: 1;
     }
 
     h1 {
@@ -100,33 +98,6 @@
       height: 18px;
       accent-color: var(--theme-color);
       cursor: pointer;
-    }
-
-    #starsLayer {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 0;
-    }
-
-    .star {
-      position: absolute;
-      top: -20px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--theme-color);
-      opacity: 0.75;
-      box-shadow: 0 0 10px 2px rgba(37, 99, 235, 0.45);
-      animation: fall linear forwards;
-    }
-
-    @keyframes fall {
-      to {
-        transform: translateY(110vh) translateX(var(--drift));
-        opacity: 0;
-      }
     }
 
     .login,
@@ -221,6 +192,44 @@
 
     .danger {
       background: #b91c1c;
+    }
+
+    .correct-panel {
+      margin: 24px 0;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      background: var(--panel-bg);
+      animation: appear 0.35s ease both;
+    }
+
+    .correct-panel h2 {
+      margin: 0 0 14px;
+    }
+
+    .correct-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .correct-item {
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--field-bg);
+      font-size: 14px;
+    }
+
+    .correct-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--theme-color);
+    }
+
+    .correct-item span {
+      color: var(--text-color);
+      overflow-wrap: anywhere;
     }
 
     .table-wrap {
@@ -321,7 +330,8 @@
     }
 
     #panel,
-    #tasksEditor {
+    #tasksEditor,
+    .correct-panel {
       animation: appear 0.35s ease both;
     }
 
@@ -377,8 +387,6 @@
 </head>
 
 <body>
-  <div id="starsLayer" aria-hidden="true"></div>
-
   <main class="wrap">
     <h1>Панель учителя</h1>
 
@@ -386,11 +394,6 @@
       <label>
         Цвет темы
         <input id="themeColor" type="color" value="#2563eb">
-      </label>
-
-      <label class="theme-toggle">
-        <input id="starsToggle" type="checkbox">
-        Падающие звёздочки
       </label>
 
       <label class="theme-toggle">
@@ -439,6 +442,16 @@
           Выйти
         </button>
       </div>
+
+      <section id="correctAnswersPanel" class="correct-panel">
+        <h2>Правильные ответы</h2>
+
+        <div id="correctAnswersList" class="correct-list"></div>
+
+        <p id="correctAnswersEmpty" hidden>
+          Правильные ответы пока не добавлены.
+        </p>
+      </section>
 
       <section id="tasksEditor" hidden>
         <h2>Правильные ответы</h2>
@@ -524,16 +537,21 @@
     const message = document.getElementById("message");
 
     const themeColorInput = document.getElementById("themeColor");
-    const starsToggle = document.getElementById("starsToggle");
     const lightModeToggle =
       document.getElementById("lightModeToggle");
-    const starsLayer = document.getElementById("starsLayer");
 
     const refreshButton = document.getElementById("refreshButton");
     const correctAnswersButton =
       document.getElementById("correctAnswersButton");
     const deleteAllButton = document.getElementById("deleteAllButton");
     const logoutButton = document.getElementById("logoutButton");
+
+    const correctAnswersPanel =
+      document.getElementById("correctAnswersPanel");
+    const correctAnswersList =
+      document.getElementById("correctAnswersList");
+    const correctAnswersEmpty =
+      document.getElementById("correctAnswersEmpty");
 
     const answersHead = document.getElementById("answersHead");
     const answersBody = document.getElementById("answersBody");
@@ -552,56 +570,13 @@
 
     let teacherPassword = "";
     let busy = false;
-    let starsTimer = null;
 
     function applyThemeColor(color) {
       document.documentElement.style.setProperty("--theme-color", color);
     }
 
-    function createStar() {
-      const star = document.createElement("div");
-      const size = 3 + Math.random() * 6;
-
-      star.className = "star";
-      star.style.left = Math.random() * 100 + "vw";
-      star.style.width = size + "px";
-      star.style.height = size + "px";
-      star.style.animationDuration = 5 + Math.random() * 6 + "s";
-      star.style.setProperty(
-        "--drift",
-        (Math.random() * 120 - 60) + "px"
-      );
-
-      star.addEventListener("animationend", () => star.remove());
-      starsLayer.appendChild(star);
-    }
-
-    function startStars() {
-      stopStars();
-
-      for (let i = 0; i < 18; i++) {
-        setTimeout(createStar, i * 180);
-      }
-
-      starsTimer = setInterval(createStar, 450);
-    }
-
-    function stopStars() {
-      clearInterval(starsTimer);
-      starsTimer = null;
-      starsLayer.replaceChildren();
-    }
-
     themeColorInput.addEventListener("input", () => {
       applyThemeColor(themeColorInput.value);
-    });
-
-    starsToggle.addEventListener("change", () => {
-      if (starsToggle.checked) {
-        startStars();
-      } else {
-        stopStars();
-      }
     });
 
     lightModeToggle.addEventListener("change", () => {
@@ -690,6 +665,36 @@
       return clean(value)
         .replace(/\s+/g, "")
         .toLowerCase();
+    }
+
+    async function refreshCorrectAnswers() {
+      const result = await apiRequest("getTasks");
+      const tasks = result.tasks || [];
+
+      correctAnswersList.replaceChildren();
+      correctAnswersEmpty.hidden = tasks.length > 0;
+
+      const sorted = tasks.slice().sort((a, b) =>
+        String(a.taskNumber).localeCompare(
+          String(b.taskNumber),
+          "ru",
+          { numeric: true, sensitivity: "base" }
+        )
+      );
+
+      for (const task of sorted) {
+        const item = document.createElement("div");
+        item.className = "correct-item";
+
+        const number = document.createElement("strong");
+        number.textContent = `Задание № ${task.taskNumber}`;
+
+        const answer = document.createElement("span");
+        answer.textContent = task.answer;
+
+        item.append(number, answer);
+        correctAnswersList.appendChild(item);
+      }
     }
 
     function showAnswers(answers) {
@@ -910,6 +915,7 @@
 
       try {
         const answers = await refreshAnswers();
+        await refreshCorrectAnswers();
 
         passwordInput.value = "";
         loginForm.hidden = true;
@@ -936,6 +942,7 @@
 
       try {
         const answers = await refreshAnswers();
+        await refreshCorrectAnswers();
 
         message.textContent = answers.length
           ? "Ответы обновлены."
@@ -1008,6 +1015,7 @@
         taskForm.reset();
 
         await refreshAnswers();
+        await refreshCorrectAnswers();
 
         message.textContent =
           "Правильный ответ сохранён. Результаты обновлены.";
@@ -1052,6 +1060,7 @@
         taskForm.reset();
 
         await refreshAnswers();
+        await refreshCorrectAnswers();
 
         message.textContent =
           result.message || "Все задания удалены.";
@@ -1099,6 +1108,7 @@
         showAnswers([]);
 
         const answers = await refreshAnswers();
+        await refreshCorrectAnswers();
 
         message.textContent = answers.length
           ? "Очистка выполнена. В таблице уже появились новые ответы."
@@ -1126,7 +1136,9 @@
       answersHead.replaceChildren();
       answersBody.replaceChildren();
       tasksBody.replaceChildren();
+      correctAnswersList.replaceChildren();
 
+      correctAnswersEmpty.hidden = false;
       taskForm.reset();
       count.textContent = "";
       message.textContent = "";
@@ -1177,6 +1189,7 @@
         }
 
         await refreshAnswers();
+        await refreshCorrectAnswers();
 
         message.textContent =
           deletionMessage + " Результаты учеников обновлены.";
