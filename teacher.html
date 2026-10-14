@@ -318,10 +318,24 @@ document.getElementById("correctAnswersLink").href = TASKS_TABLE_URL;
     const className = clean(answer.className);
     const taskNumber = clean(answer.taskNumber);
 
-    const studentKey = JSON.stringify([
-      firstName.toLowerCase(),
-      lastName.toLowerCase(),
-      className.toLowerCase()
+    const normalizeName = value =>
+  String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .replace(/ё/g, "е");
+
+const normalizeClass = value =>
+  String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .toLowerCase();
+
+const studentKey = JSON.stringify([
+  normalizeName(firstName),
+  normalizeName(lastName),
+  normalizeClass(className)
+]);
     ]);
 
     if (!students.has(studentKey)) {
