@@ -6,6 +6,25 @@
   <title>Отправка ответа</title>
 
   <style>
+    :root {
+      --theme-color: #2563eb;
+      --page-bg: #f1f5f9;
+      --text-color: #172033;
+      --card-bg: white;
+      --border-color: #cbd5e1;
+      --muted-color: #64748b;
+      --item-bg: #f8fafc;
+    }
+
+    body.dark {
+      --page-bg: #0f172a;
+      --text-color: #e2e8f0;
+      --card-bg: #1e293b;
+      --border-color: #475569;
+      --muted-color: #94a3b8;
+      --item-bg: #111c30;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -14,18 +33,102 @@
       margin: 0;
       padding: 24px;
       font-family: system-ui, sans-serif;
-      background: #f1f5f9;
-      color: #172033;
+      background: var(--page-bg);
+      color: var(--text-color);
+      transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
     }
 
-    .card {
+    #starsLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      top: -20px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--theme-color);
+      opacity: 0.7;
+      box-shadow: 0 0 10px 2px rgba(37, 99, 235, 0.45);
+      animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) translateX(var(--drift));
+        opacity: 0;
+      }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+    }
+
+    .theme-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      max-width: 460px;
+      margin: 0 auto 18px;
+      padding: 14px 16px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+      transition:
+        background-color 0.3s ease,
+        box-shadow 0.3s ease;
+    }
+
+    .theme-panel label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .theme-panel input[type="color"] {
+      width: 46px;
+      height: 34px;
+      padding: 2px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--card-bg);
+      cursor: pointer;
+    }
+
+    .theme-toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--theme-color);
+      cursor: pointer;
+    }
+
+    .card,
+    #sentAnswers {
       width: 100%;
       max-width: 460px;
-      margin: 24px auto;
+      margin: 0 auto 24px;
       padding: 28px;
-      background: white;
+      background: var(--card-bg);
       border-radius: 20px;
       box-shadow: 0 12px 35px rgba(15, 23, 42, 0.1);
+      animation: appear 0.4s ease both;
+      transition:
+        background-color 0.3s ease,
+        box-shadow 0.3s ease;
     }
 
     h1 {
@@ -33,8 +136,13 @@
       font-size: 26px;
     }
 
+    #sentAnswers h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
     p {
-      color: #64748b;
+      color: var(--muted-color);
       line-height: 1.5;
     }
 
@@ -47,14 +155,22 @@
     input {
       width: 100%;
       padding: 12px;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--border-color);
       border-radius: 10px;
+      background: var(--card-bg);
+      color: var(--text-color);
       font: inherit;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background-color 0.3s ease,
+        color 0.3s ease;
     }
 
     input:focus {
-      outline: 2px solid #93c5fd;
-      border-color: #2563eb;
+      outline: none;
+      border-color: var(--theme-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
 
     button {
@@ -63,11 +179,25 @@
       padding: 14px;
       border: 0;
       border-radius: 12px;
-      background: #2563eb;
+      background: var(--theme-color);
       color: white;
       font: inherit;
       font-weight: 700;
       cursor: pointer;
+      transition:
+        background-color 0.25s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.25s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     button:disabled {
@@ -79,6 +209,7 @@
       min-height: 24px;
       margin-top: 16px;
       text-align: center;
+      font-weight: 600;
     }
 
     .success {
@@ -93,71 +224,161 @@
       display: block;
       margin-top: 20px;
       text-align: center;
-      color: #2563eb;
+      color: var(--theme-color);
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .teacher-link:hover {
+      opacity: 0.75;
+    }
+
+    .sent-item {
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--item-bg);
+      animation: appear 0.3s ease both;
+      transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease;
+    }
+
+    .sent-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--theme-color);
+    }
+
+    .sent-item span {
+      color: var(--muted-color);
+      overflow-wrap: anywhere;
+    }
+
+    .sent-empty {
+      color: var(--muted-color);
+      font-size: 14px;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 16px;
+      }
+
+      .theme-panel {
+        align-items: stretch;
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
 
 <body>
-  <main class="card">
-    <h1>Отправить ответ</h1>
-    <p>Введите свои данные, номер задания и ответ.</p>
+  <div id="starsLayer" aria-hidden="true"></div>
 
-    <form id="answerForm">
-      <label for="firstName">Имя</label>
-      <input
-        id="firstName"
-        name="firstName"
-        autocomplete="given-name"
-        maxlength="80"
-        required
-      >
+  <main class="wrap">
+    <section class="theme-panel">
+      <label>
+        Цвет темы
+        <input id="themeColor" type="color" value="#2563eb">
+      </label>
 
-      <label for="lastName">Фамилия</label>
-      <input
-        id="lastName"
-        name="lastName"
-        autocomplete="family-name"
-        maxlength="80"
-        required
-      >
+      <label class="theme-toggle">
+        <input id="starsToggle" type="checkbox">
+        Падающие звёздочки
+      </label>
 
-      <label for="className">Класс</label>
-      <input
-        id="className"
-        name="className"
-        placeholder="Например: 7А"
-        maxlength="20"
-        required
-      >
+      <label class="theme-toggle">
+        <input id="darkModeToggle" type="checkbox">
+        Тёмный фон
+      </label>
+    </section>
 
-      <label for="taskNumber">Номер задания</label>
-      <input
-        id="taskNumber"
-        name="taskNumber"
-        placeholder="Например: 1"
-        maxlength="40"
-        required
-      >
+    <section class="card">
+      <h1>Отправить ответ</h1>
+      <p>Введите свои данные, номер задания и ответ.</p>
 
-      <label for="answer">Ответ</label>
-      <input
-        id="answer"
-        name="answer"
-        maxlength="1000"
-        required
-      >
+      <form id="answerForm">
+        <label for="firstName">Имя</label>
+        <input
+          id="firstName"
+          name="firstName"
+          autocomplete="given-name"
+          maxlength="80"
+          required
+        >
 
-      <button id="sendButton" type="submit">
-        Отправить ответ
-      </button>
-    </form>
+        <label for="lastName">Фамилия</label>
+        <input
+          id="lastName"
+          name="lastName"
+          autocomplete="family-name"
+          maxlength="80"
+          required
+        >
 
-    <div id="status" role="status" aria-live="polite"></div>
+        <label for="className">Класс</label>
+        <input
+          id="className"
+          name="className"
+          placeholder="Например: 7А"
+          maxlength="20"
+          required
+        >
 
-    <a class="teacher-link" href="teacher.html">
-      Панель учителя
-    </a>
+        <label for="taskNumber">Номер задания</label>
+        <input
+          id="taskNumber"
+          name="taskNumber"
+          placeholder="Например: 1"
+          maxlength="40"
+          required
+        >
+
+        <label for="answer">Ответ</label>
+        <input
+          id="answer"
+          name="answer"
+          maxlength="1000"
+          required
+        >
+
+        <button id="sendButton" type="submit">
+          Отправить ответ
+        </button>
+      </form>
+
+      <div id="status" role="status" aria-live="polite"></div>
+
+      <a class="teacher-link" href="teacher.html">
+        Панель учителя
+      </a>
+    </section>
+
+    <section id="sentAnswers" hidden>
+      <h2>Ваши отправленные ответы</h2>
+      <div id="sentList"></div>
+    </section>
   </main>
 
   <script>
@@ -166,6 +387,146 @@
     const form = document.getElementById("answerForm");
     const button = document.getElementById("sendButton");
     const status = document.getElementById("status");
+
+    const themeColorInput = document.getElementById("themeColor");
+    const starsToggle = document.getElementById("starsToggle");
+    const darkModeToggle = document.getElementById("darkModeToggle");
+    const starsLayer = document.getElementById("starsLayer");
+
+    const sentAnswers = document.getElementById("sentAnswers");
+    const sentList = document.getElementById("sentList");
+
+    let starsTimer = null;
+    let localAnswers = [];
+
+    function applyThemeColor(color) {
+      document.documentElement.style.setProperty("--theme-color", color);
+    }
+
+    function createStar() {
+      const star = document.createElement("div");
+      const size = 3 + Math.random() * 6;
+
+      star.className = "star";
+      star.style.left = Math.random() * 100 + "vw";
+      star.style.width = size + "px";
+      star.style.height = size + "px";
+      star.style.animationDuration = 5 + Math.random() * 6 + "s";
+      star.style.setProperty(
+        "--drift",
+        (Math.random() * 120 - 60) + "px"
+      );
+
+      star.addEventListener("animationend", () => star.remove());
+      starsLayer.appendChild(star);
+    }
+
+    function startStars() {
+      stopStars();
+
+      for (let i = 0; i < 18; i++) {
+        setTimeout(createStar, i * 180);
+      }
+
+      starsTimer = setInterval(createStar, 450);
+    }
+
+    function stopStars() {
+      clearInterval(starsTimer);
+      starsTimer = null;
+      starsLayer.replaceChildren();
+    }
+
+    themeColorInput.addEventListener("input", () => {
+      applyThemeColor(themeColorInput.value);
+    });
+
+    starsToggle.addEventListener("change", () => {
+      if (starsToggle.checked) {
+        startStars();
+      } else {
+        stopStars();
+      }
+    });
+
+    darkModeToggle.addEventListener("change", () => {
+      document.body.classList.toggle("dark", darkModeToggle.checked);
+
+      localStorage.setItem(
+        "darkMode",
+        darkModeToggle.checked ? "on" : "off"
+      );
+    });
+
+    if (localStorage.getItem("darkMode") === "on") {
+      darkModeToggle.checked = true;
+      document.body.classList.add("dark");
+    }
+
+    function getNextTaskNumber(current) {
+      const number = parseInt(current, 10);
+
+      if (Number.isNaN(number)) {
+        return current;
+      }
+
+      return String(number + 1);
+    }
+
+    function showSentAnswers() {
+      sentList.replaceChildren();
+
+      if (localAnswers.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "sent-empty";
+        empty.textContent = "Отправленных ответов пока нет.";
+        sentList.appendChild(empty);
+        return;
+      }
+
+      for (const item of localAnswers.slice().reverse()) {
+        const block = document.createElement("div");
+        block.className = "sent-item";
+
+        const title = document.createElement("strong");
+        title.textContent = `Задание № ${item.taskNumber}`;
+
+        const answer = document.createElement("span");
+        answer.textContent = item.answer;
+
+        block.append(title, answer);
+        sentList.appendChild(block);
+      }
+    }
+
+    function saveLocalAnswer(item) {
+      localAnswers.push(item);
+
+      localStorage.setItem(
+        "sentAnswers",
+        JSON.stringify(localAnswers)
+      );
+
+      showSentAnswers();
+      sentAnswers.hidden = false;
+    }
+
+    try {
+      localAnswers = JSON.parse(
+        localStorage.getItem("sentAnswers") || "[]"
+      );
+
+      if (!Array.isArray(localAnswers)) {
+        localAnswers = [];
+      }
+
+      if (localAnswers.length > 0) {
+        showSentAnswers();
+        sentAnswers.hidden = false;
+      }
+    } catch {
+      localAnswers = [];
+    }
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -202,8 +563,8 @@
         });
 
         if (!response.ok) {
-  throw new Error("Ошибка HTTP " + response.status);
-}
+          throw new Error("Ошибка HTTP " + response.status);
+        }
 
         const result = await response.json();
 
@@ -213,7 +574,23 @@
 
         status.className = "success";
         status.textContent = result.message || "Ответ отправлен!";
+
+        saveLocalAnswer({
+          taskNumber: data.taskNumber,
+          answer: data.answer
+        });
+
+        const taskNumberInput =
+          document.getElementById("taskNumber");
+
+        taskNumberInput.value = getNextTaskNumber(data.taskNumber);
         document.getElementById("answer").value = "";
+        document.getElementById("answer").focus();
+
+        sentAnswers.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
       } catch (error) {
         status.className = "error";
         status.textContent =
@@ -226,4 +603,3 @@
   </script>
 </body>
 </html>
-
