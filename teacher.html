@@ -6,6 +6,10 @@
   <title>Панель учителя</title>
 
   <style>
+    :root {
+      --theme-color: #2563eb;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -21,6 +25,8 @@
     .wrap {
       max-width: 1400px;
       margin: auto;
+      position: relative;
+      z-index: 1;
     }
 
     h1 {
@@ -30,6 +36,70 @@
     .subtitle {
       color: #94a3b8;
       line-height: 1.5;
+    }
+
+    .theme-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      margin: 16px 0 24px;
+      padding: 14px 16px;
+      border: 1px solid #475569;
+      border-radius: 14px;
+      background: #111c30;
+    }
+
+    .theme-panel label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .theme-panel input[type="color"] {
+      width: 46px;
+      height: 34px;
+      padding: 2px;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      background: #1e293b;
+      cursor: pointer;
+    }
+
+    .theme-toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--theme-color);
+      cursor: pointer;
+    }
+
+    #starsLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      top: -20px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: white;
+      opacity: 0.85;
+      box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.55);
+      animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) translateX(var(--drift));
+        opacity: 0;
+      }
     }
 
     .login,
@@ -71,15 +141,38 @@
       outline-offset: 3px;
     }
 
+    button,
+    input,
+    section,
+    table,
+    .task-form {
+      transition:
+        background-color 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.25s ease;
+    }
+
     button {
       padding: 12px 18px;
       border: 0;
       border-radius: 10px;
-      background: #2563eb;
+      background: var(--theme-color, #2563eb);
       color: white;
       font: inherit;
       font-weight: 600;
       cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     button:disabled {
@@ -183,6 +276,23 @@
       background: #111c30;
     }
 
+    #panel,
+    #tasksEditor {
+      animation: appear 0.35s ease both;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     a {
       color: #93c5fd;
     }
@@ -197,7 +307,8 @@
       }
 
       .login,
-      .task-form {
+      .task-form,
+      .theme-panel {
         align-items: stretch;
         flex-direction: column;
       }
@@ -211,12 +322,33 @@
         padding: 14px;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 
 <body>
+  <div id="starsLayer" aria-hidden="true"></div>
+
   <main class="wrap">
     <h1>Панель учителя</h1>
+
+    <section class="theme-panel">
+      <label>
+        Цвет темы
+        <input id="themeColor" type="color" value="#2563eb">
+      </label>
+
+      <label class="theme-toggle">
+        <input id="starsToggle" type="checkbox">
+        Падающие звёздочки
+      </label>
+    </section>
 
     <p class="subtitle">
       Каждый ученик отображается в одной строке.
@@ -285,20 +417,21 @@
           >
 
           <button id="saveTaskButton" type="submit">
-  Сохранить
-</button>
+            Сохранить
+          </button>
 
-<button
-  id="deleteAllTasksButton"
-  class="danger"
-  type="button"
->
-  Удалить все задания
-</button>
+          <button
+            id="deleteAllTasksButton"
+            class="danger"
+            type="button"
+          >
+            Удалить все задания
+          </button>
 
-<button id="closeTasksButton" class="secondary" type="button">
-  Закрыть
-</button>
+          <button id="closeTasksButton" class="secondary" type="button">
+            Закрыть
+          </button>
+        </form>
 
         <div class="table-wrap">
           <table>
@@ -341,6 +474,10 @@
     const panel = document.getElementById("panel");
     const message = document.getElementById("message");
 
+    const themeColorInput = document.getElementById("themeColor");
+    const starsToggle = document.getElementById("starsToggle");
+    const starsLayer = document.getElementById("starsLayer");
+
     const refreshButton = document.getElementById("refreshButton");
     const correctAnswersButton =
       document.getElementById("correctAnswersButton");
@@ -357,12 +494,64 @@
     const taskAnswerInput = document.getElementById("taskAnswerInput");
     const saveTaskButton = document.getElementById("saveTaskButton");
     const closeTasksButton = document.getElementById("closeTasksButton");
-    const deleteAllTasksButton = document.getElementById("deleteAllTasksButton");
+    const deleteAllTasksButton =
+      document.getElementById("deleteAllTasksButton");
     const tasksBody = document.getElementById("tasksBody");
     const tasksEmpty = document.getElementById("tasksEmpty");
 
     let teacherPassword = "";
     let busy = false;
+    let starsTimer = null;
+
+    function applyThemeColor(color) {
+      document.documentElement.style.setProperty("--theme-color", color);
+    }
+
+    function createStar() {
+      const star = document.createElement("div");
+      const size = 3 + Math.random() * 6;
+
+      star.className = "star";
+      star.style.left = Math.random() * 100 + "vw";
+      star.style.width = size + "px";
+      star.style.height = size + "px";
+      star.style.animationDuration = 5 + Math.random() * 6 + "s";
+      star.style.setProperty(
+        "--drift",
+        (Math.random() * 120 - 60) + "px"
+      );
+
+      star.addEventListener("animationend", () => star.remove());
+      starsLayer.appendChild(star);
+    }
+
+    function startStars() {
+      stopStars();
+
+      for (let i = 0; i < 18; i++) {
+        setTimeout(createStar, i * 180);
+      }
+
+      starsTimer = setInterval(createStar, 450);
+    }
+
+    function stopStars() {
+      clearInterval(starsTimer);
+      starsTimer = null;
+      starsLayer.replaceChildren();
+    }
+
+    themeColorInput.addEventListener("input", () => {
+      applyThemeColor(themeColorInput.value);
+    });
+
+    starsToggle.addEventListener("change", () => {
+      if (starsToggle.checked) {
+        startStars();
+      } else {
+        stopStars();
+      }
+    });
 
     function setBusy(value) {
       busy = value;
@@ -550,65 +739,65 @@
     }
 
     function renderTasks(tasks) {
-  tasksBody.replaceChildren();
-  tasksEmpty.hidden = tasks.length > 0;
+      tasksBody.replaceChildren();
+      tasksEmpty.hidden = tasks.length > 0;
 
-  const sorted = tasks.slice().sort((a, b) =>
-    String(a.taskNumber).localeCompare(
-      String(b.taskNumber),
-      "ru",
-      { numeric: true, sensitivity: "base" }
-    )
-  );
+      const sorted = tasks.slice().sort((a, b) =>
+        String(a.taskNumber).localeCompare(
+          String(b.taskNumber),
+          "ru",
+          { numeric: true, sensitivity: "base" }
+        )
+      );
 
-  for (const task of sorted) {
-    const row = document.createElement("tr");
+      for (const task of sorted) {
+        const row = document.createElement("tr");
 
-    addCell(row, task.taskNumber);
-    addCell(row, task.answer);
+        addCell(row, task.taskNumber);
+        addCell(row, task.answer);
 
-    const actionCell = document.createElement("td");
-    const actions = document.createElement("div");
+        const actionCell = document.createElement("td");
+        const actions = document.createElement("div");
 
-    actions.style.display = "flex";
-    actions.style.flexWrap = "wrap";
-    actions.style.gap = "8px";
+        actions.style.display = "flex";
+        actions.style.flexWrap = "wrap";
+        actions.style.gap = "8px";
 
-    const editButton = document.createElement("button");
+        const editButton = document.createElement("button");
 
-    editButton.type = "button";
-    editButton.className = "secondary";
-    editButton.textContent = "Изменить";
-    editButton.disabled = busy;
+        editButton.type = "button";
+        editButton.className = "secondary";
+        editButton.textContent = "Изменить";
+        editButton.disabled = busy;
 
-    editButton.addEventListener("click", () => {
-      taskNumberInput.value = task.taskNumber;
-      taskAnswerInput.value = task.answer;
-      taskAnswerInput.focus();
+        editButton.addEventListener("click", () => {
+          taskNumberInput.value = task.taskNumber;
+          taskAnswerInput.value = task.answer;
+          taskAnswerInput.focus();
 
-      taskForm.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    });
+          taskForm.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+          });
+        });
 
-    const deleteButton = document.createElement("button");
+        const deleteButton = document.createElement("button");
 
-    deleteButton.type = "button";
-    deleteButton.className = "danger";
-    deleteButton.textContent = "Удалить";
-    deleteButton.disabled = busy;
+        deleteButton.type = "button";
+        deleteButton.className = "danger";
+        deleteButton.textContent = "Удалить";
+        deleteButton.disabled = busy;
 
-    deleteButton.addEventListener("click", () => {
-      removeTask(task.taskNumber);
-    });
+        deleteButton.addEventListener("click", () => {
+          removeTask(task.taskNumber);
+        });
 
-    actions.append(editButton, deleteButton);
-    actionCell.appendChild(actions);
-    row.appendChild(actionCell);
-    tasksBody.appendChild(row);
-  }
-}
+        actions.append(editButton, deleteButton);
+        actionCell.appendChild(actions);
+        row.appendChild(actionCell);
+        tasksBody.appendChild(row);
+      }
+    }
 
     async function refreshAnswers() {
       const result = await apiRequest("teacher");
@@ -743,49 +932,51 @@
         setBusy(false);
       }
     });
-deleteAllTasksButton.addEventListener("click", async () => {
-  if (busy || !teacherPassword) {
-    return;
-  }
 
-  const confirmed = window.confirm(
-    "Удалить ВСЕ задания и правильные ответы?\n\n" +
-    "Ответы учеников останутся в таблице, " +
-    "но без заданий они не будут проверяться."
-  );
+    deleteAllTasksButton.addEventListener("click", async () => {
+      if (busy || !teacherPassword) {
+        return;
+      }
 
-  if (!confirmed) {
-    return;
-  }
+      const confirmed = window.confirm(
+        "Удалить ВСЕ задания и правильные ответы?\n\n" +
+        "Ответы учеников останутся в таблице, " +
+        "но без заданий они не будут проверяться."
+      );
 
-  setBusy(true);
-  message.textContent = "Удаляем все задания…";
-  let deleted = false;
+      if (!confirmed) {
+        return;
+      }
 
-  try {
-    const result = await apiRequest("deleteAllTasks", {
-      confirmation: "DELETE_ALL_TASKS"
+      setBusy(true);
+      message.textContent = "Удаляем все задания…";
+      let deleted = false;
+
+      try {
+        const result = await apiRequest("deleteAllTasks", {
+          confirmation: "DELETE_ALL_TASKS"
+        });
+
+        deleted = true;
+        renderTasks(result.tasks || []);
+        taskForm.reset();
+
+        await refreshAnswers();
+
+        message.textContent =
+          result.message || "Все задания удалены.";
+      } catch (error) {
+        message.textContent = deleted
+          ? "Удаление выполнено, но список не обновился. " +
+            "Заново откройте «Правильные ответы». " + error.message
+          : error.message +
+            " Перед повторной попыткой заново откройте " +
+            "«Правильные ответы».";
+      } finally {
+        setBusy(false);
+      }
     });
 
-    deleted = true;
-    renderTasks(result.tasks || []);
-    taskForm.reset();
-
-    await refreshAnswers();
-
-    message.textContent =
-      result.message || "Все задания удалены.";
-  } catch (error) {
-    message.textContent = deleted
-      ? "Удаление выполнено, но список не обновился. " +
-        "Заново откройте «Правильные ответы». " + error.message
-      : error.message +
-        " Перед повторной попыткой заново откройте " +
-        "«Правильные ответы».";
-  } finally {
-    setBusy(false);
-  }
-});
     closeTasksButton.addEventListener("click", () => {
       tasksEditor.hidden = true;
     });
@@ -856,62 +1047,63 @@ deleteAllTasksButton.addEventListener("click", async () => {
 
       passwordInput.focus();
     });
+
     async function removeTask(taskNumber) {
-  if (busy || !teacherPassword) {
-    return;
-  }
+      if (busy || !teacherPassword) {
+        return;
+      }
 
-  const confirmed = window.confirm(
-    `Удалить задание № ${taskNumber} и его правильный ответ?\n\n` +
-    "Ответы учеников останутся, но будут отмечаться как неправильные, " +
-    "пока вы снова не добавите правильный ответ для этого задания."
-  );
+      const confirmed = window.confirm(
+        `Удалить задание № ${taskNumber} и его правильный ответ?\n\n` +
+        "Ответы учеников останутся, но будут отмечаться как неправильные, " +
+        "пока вы снова не добавите правильный ответ для этого задания."
+      );
 
-  if (!confirmed) {
-    return;
-  }
+      if (!confirmed) {
+        return;
+      }
 
-  setBusy(true);
-  message.textContent = "Удаляем задание…";
+      setBusy(true);
+      message.textContent = "Удаляем задание…";
 
-  let deleted = false;
-  let deletionMessage = "";
+      let deleted = false;
+      let deletionMessage = "";
 
-  try {
-    const result = await apiRequest("deleteTask", {
-      taskNumber: String(taskNumber),
-      confirmation: "DELETE_TASK"
-    });
+      try {
+        const result = await apiRequest("deleteTask", {
+          taskNumber: String(taskNumber),
+          confirmation: "DELETE_TASK"
+        });
 
-    deleted = true;
-    deletionMessage = result.message || "Задание удалено.";
+        deleted = true;
+        deletionMessage = result.message || "Задание удалено.";
 
-    renderTasks(result.tasks || []);
+        renderTasks(result.tasks || []);
 
-    if (
-      taskNumberInput.value.trim() === String(taskNumber).trim()
-    ) {
-      taskForm.reset();
+        if (
+          taskNumberInput.value.trim() === String(taskNumber).trim()
+        ) {
+          taskForm.reset();
+        }
+
+        await refreshAnswers();
+
+        message.textContent =
+          deletionMessage + " Результаты учеников обновлены.";
+
+      } catch (error) {
+        message.textContent = deleted
+          ? deletionMessage +
+            " Но результаты не обновились. Нажмите «Обновить ответы». " +
+            error.message
+          : error.message +
+            " Перед повторной попыткой заново откройте " +
+            "«Правильные ответы», чтобы проверить список.";
+
+      } finally {
+        setBusy(false);
+      }
     }
-
-    await refreshAnswers();
-
-    message.textContent =
-      deletionMessage + " Результаты учеников обновлены.";
-
-  } catch (error) {
-    message.textContent = deleted
-      ? deletionMessage +
-        " Но результаты не обновились. Нажмите «Обновить ответы». " +
-        error.message
-      : error.message +
-        " Перед повторной попыткой заново откройте " +
-        "«Правильные ответы», чтобы проверить список.";
-
-  } finally {
-    setBusy(false);
-  }
-}
   </script>
 </body>
 </html>
